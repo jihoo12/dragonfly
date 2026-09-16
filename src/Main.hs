@@ -47,6 +47,9 @@ shift d cutoff (App f x) =
         (shift d cutoff f)
         (shift d cutoff x)
 
+--subst substitution
+--WHNF Weak Head Normal Form
+
 
 main :: IO ()
 main = do
