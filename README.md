@@ -1,23 +1,128 @@
 # Dragonfly
 
-A small Haskell learning kernel for dependent type theory, intended as a
-foundation for a future CCHM cubical implementation. The current milestone has
-Pi types, lambdas, application, annotations, and a noncumulative universe
-hierarchy. It does not yet implement intervals, paths, or composition.
+A Haskell dependent-type learning kernel plus a minimal CCHM computational-
+univalence kernel adapted directly from cubicaltt. Both use explicit,
+noncumulative universe levels: `Type l : Type (l + 1)`.
 
 ## Run
 
-With the prepared GHC/Cabal toolchain:
-
 ```sh
 cabal build all
-cabal test --test-show-details=direct
+cabal test all --test-show-details=direct
 cabal run dragonfly
 ```
 
-The kernel and its tests require only `base`. The executable prints inferred
-types and beta-normal forms for polymorphic identity and its applications,
-then demonstrates rejection of `Type 0 : Type 0`.
+The executable begins with an actual cubical reduction:
+
+```text
+Computational univalence: transport along the pair-swap equivalence
+  (false, true) -> (true,false)
+```
+
+It then runs the original dependent identity examples. The cubical kernel uses
+`containers`, `mtl`, and `pretty` in addition to `base`; no parser generators or
+external proof assistant are needed.
+
+## Computational univalence
+
+Import `Dragonfly.Cubical` (qualified if also using the original kernel):
+
+```haskell
+import qualified Dragonfly.Cubical as C
+
+-- A checked closed term: ua_0 applied to the pair-swap equivalence.
+result = C.normalizeClosed
+  (C.transport C.swapPath (C.Pair C.false C.true))
+-- Right "(true,false)"
+
+-- Generic, level-indexed univalence is itself checked by the kernel.
+checked = C.checkClosed (C.ua 2) (C.uaType 2)
+-- Right ()
+```
+
+`ua l` is an ordinary annotated term with type
+`(A B : Type l) -> Equiv A B -> Path (Type l) A B`. It is built as:
+
+```text
+ua_l A B e = <i> Glue_l B
+  [ (i=0) -> (A,e), (i=1) -> (B,identityEquivalence B) ]
+```
+
+There is no `ua` evaluator constructor or univalence postulate. Equivalences
+are functions with contractible fibers. Identity equivalence and the pair-swap
+equivalence include checked fiber-contraction proofs made from ordinary terms.
+Transport is composition with an empty tube. The end-to-end test checks the
+equivalence, checks its universe path and endpoints, and verifies that transport
+changes a closed pair to the swapped pair. It also verifies that this result is
+not convertible to the unchanged pair.
+
+The public AST is deliberately close to cubicaltt: named term binders, typed
+lambdas, dimension abstractions `PLam`, dimension applications `AppFormula`,
+and `U l` for `Type l`. This is a separate AST from the original de Bruijn
+`Dragonfly.Syntax.Term`, so the original kernel and its tests stay intact.
+Use `Ann term type` for introductions that need an inferred type.
+
+The checked API provides:
+
+```haskell
+checkClosed     :: Ter -> Ter -> Either TypeError ()
+inferClosed     :: Ter -> Either TypeError String
+normalizeClosed :: Ter -> Either TypeError String
+normalizesTo    :: Ter -> Ter -> Ter -> Either TypeError Bool
+```
+
+`normalizesTo term expected type` checks both terms before comparing their
+computed values, including eta conversion. `inferClosed` and `normalizeClosed`
+render semantic results for inspection. They do not expose unchecked values.
+
+### Implemented boundary
+
+- Separate nominal dimensions with De Morgan connections and substitution.
+- Dependent paths with endpoint checks and beta/eta conversion.
+- Face systems represented by finite disjunctions of conjunctions of endpoint
+  constraints. Every supplied side is checked, including overlap compatibility,
+  before system absorption. `system` constructs a map; use unique face keys.
+- CCHM composition/filling for Pi, Sigma, paths, Glue, and universes.
+- `Glue l base equivalences`, with its base and partial domains in `Type l`.
+- `GlueElem type base partialElements` and `UnGlueElem element type`; explicit
+  type annotations also support universe-composition elements.
+- A closed Boolean type used only to demonstrate nontrivial computation.
+
+Pi/Sigma formation takes the maximum universe level. Dependent paths inherit
+the family level. Composition checks a family in one fixed universe, and Glue
+checks each partial equivalence at its declared level. Semantic universe and
+universe-composition values retain levels. There is no cumulativity, implicit
+resizing, `U : U`, or `Type l : Type l` rule.
+
+This is the minimum AST-only univalence milestone. Recursive declarations,
+general inductive types, higher inductive types, holes, undefined terms, the
+parser, and the REPL are not exposed or accepted by the checked cubical API.
+Some unused upstream evaluator forms remain internally to avoid rewriting the
+reference algorithms. Raw internal evaluation assumes checked inputs.
+CCHM computations can retain neutral composition terms; in particular, no
+extra rule claiming every constant-family transport is judgmentally identity
+has been added.
+
+### Modules and validation
+
+- `src/Dragonfly/Cubical/Connections.hs`: interval algebra, faces, nominal
+  substitution, and systems, adapted from cubicaltt.
+- `Syntax.hs` and `Eval.hs` in that directory: level-indexed syntax and the
+  reference composition, universe-composition, and Glue algorithms.
+- `Check.hs`: pure checking boundary with explicit levels and checked systems.
+- `Univalence.hs`: ordinary AST builders for equivalences, `ua`, and the witness.
+- `test-cubical/Main.hs`: the computational target plus universe rejection,
+  endpoints, dimension scoping, De Morgan laws, overlapping faces, filling,
+  Glue computation, and composition in a universe-composition type.
+- `test/Main.hs`: the original non-cubical kernel regressions and interval tests.
+
+Source provenance, the pinned upstream commit, adaptation notes, and the MIT
+license are in `vendor/cubicaltt/`. Dragonfly's own code remains Apache-2.0.
+The mathematical references are the
+[CCHM paper](https://arxiv.org/abs/1611.02108) and
+[cubicaltt](https://github.com/mortberg/cubicaltt).
+
+The following sections describe the original learning kernel.
 
 ## 1. Syntax and binding
 
@@ -107,20 +212,3 @@ output is for inspection, not a round-trip source format.
 binders, alpha/eta equality, eta conversion within dependent types, dependent
 applications, universe rules, and rejection of invalid terms. It uses a small
 assertion runner and exits unsuccessfully on the first failed assertion.
-
-## Future milestones
-
-Plan these separately before implementing them:
-
-1. Dependent pairs and projections.
-2. A separate dimension context and De Morgan interval expressions, without
-   assuming Boolean excluded middle.
-3. Dependent paths, dimension abstraction/application, and endpoint checking.
-4. Face formulas, compatible partial systems, and CCHM composition.
-5. Universe composition, Glue types, and computational univalence.
-
-The intended references are the
-[CCHM paper](https://arxiv.org/abs/1611.02108) and
-[cubicaltt](https://github.com/mortberg/cubicaltt).
-Parsing, a REPL, implicit arguments, metavariables, general recursion, and higher
-inductive types remain outside the first milestone.

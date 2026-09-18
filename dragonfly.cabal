@@ -29,10 +29,10 @@ version:            0.1.0.0
 -- description:
 
 -- The license under which the package is released.
-license:            Apache-2.0
+license:            Apache-2.0 AND MIT
 
 -- The file containing the license text.
-license-file:       LICENSE
+license-files:      LICENSE vendor/cubicaltt/LICENSE
 
 -- The package author(s).
 author:             jihoo
@@ -46,7 +46,7 @@ category:           Math
 build-type:         Simple
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
-extra-doc-files:    CHANGELOG.md README.md
+extra-doc-files:    CHANGELOG.md README.md vendor/cubicaltt/README.md vendor/cubicaltt/LICENSE
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
@@ -59,7 +59,11 @@ library
     hs-source-dirs:   src
     exposed-modules:  Dragonfly.Syntax Dragonfly.Eval Dragonfly.Check
                       Dragonfly.Pretty Dragonfly.Examples Dragonfly.Interval
-    build-depends:    base ^>=4.20.2.0
+                      Dragonfly.Cubical
+    other-modules:    Dragonfly.Cubical.Syntax Dragonfly.Cubical.Connections
+                      Dragonfly.Cubical.Eval Dragonfly.Cubical.Check
+                      Dragonfly.Cubical.Univalence
+    build-depends:    base ^>=4.20.2.0, containers, mtl, pretty
     default-language: GHC2021
 
 executable dragonfly
@@ -68,7 +72,10 @@ executable dragonfly
     hs-source-dirs:   src
     other-modules:    Dragonfly.Syntax Dragonfly.Eval Dragonfly.Check
                       Dragonfly.Pretty Dragonfly.Examples Dragonfly.Interval
-    build-depends:    base ^>=4.20.2.0
+                      Dragonfly.Cubical Dragonfly.Cubical.Syntax
+                      Dragonfly.Cubical.Connections Dragonfly.Cubical.Eval
+                      Dragonfly.Cubical.Check Dragonfly.Cubical.Univalence
+    build-depends:    base ^>=4.20.2.0, containers, mtl, pretty
     default-language: GHC2021
 
 test-suite kernel-tests
@@ -76,5 +83,13 @@ test-suite kernel-tests
     type:             exitcode-stdio-1.0
     main-is:          Main.hs
     hs-source-dirs:   test
+    build-depends:    base ^>=4.20.2.0, dragonfly
+    default-language: GHC2021
+
+test-suite cubical-tests
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   test-cubical
     build-depends:    base ^>=4.20.2.0, dragonfly
     default-language: GHC2021
