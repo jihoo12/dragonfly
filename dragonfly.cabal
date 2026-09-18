@@ -46,7 +46,8 @@ category:           Math
 build-type:         Simple
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
-extra-doc-files:    CHANGELOG.md README.md vendor/cubicaltt/README.md vendor/cubicaltt/LICENSE
+extra-doc-files:    CHANGELOG.md README.md docs/cubical-audit.md vendor/cubicaltt/README.md vendor/cubicaltt/LICENSE
+extra-source-files: test-audit/check-exports.sh
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
@@ -91,5 +92,13 @@ test-suite cubical-tests
     type:             exitcode-stdio-1.0
     main-is:          Main.hs
     hs-source-dirs:   test-cubical
+    build-depends:    base ^>=4.20.2.0, dragonfly
+    default-language: GHC2021
+
+test-suite cubical-audit-tests
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Main.hs
+    hs-source-dirs:   test-audit
     build-depends:    base ^>=4.20.2.0, dragonfly
     default-language: GHC2021

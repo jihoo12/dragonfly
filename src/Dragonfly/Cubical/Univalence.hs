@@ -3,7 +3,6 @@ module Dragonfly.Cubical.Univalence
   ( path, equiv, ua, uaType, transport, identityEquivalence
   , bool, false, true, pairBool, swapEquivalence, swapPath ) where
 
-import Data.List (isInfixOf)
 import Numeric.Natural (Natural)
 import Dragonfly.Cubical.Syntax
 import Dragonfly.Cubical.Connections
@@ -13,8 +12,8 @@ import Dragonfly.Cubical.Connections
 freshIdentifier :: [Ter] -> String -> String
 freshIdentifier terms = choose
   where
-    printed = show terms
-    choose name | name `isInfixOf` printed = choose (name ++ "'")
+    used = concatMap identifiers terms
+    choose name | name `elem` used = choose (name ++ "'")
                 | otherwise = name
 
 constant :: Ter -> Ter

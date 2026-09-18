@@ -85,7 +85,10 @@ render semantic results for inspection. They do not expose unchecked values.
 - CCHM composition/filling for Pi, Sigma, paths, Glue, and universes.
 - `Glue l base equivalences`, with its base and partial domains in `Type l`.
 - `GlueElem type base partialElements` and `UnGlueElem element type`; explicit
-  type annotations also support universe-composition elements.
+  type annotations also support universe-composition elements. Unglue needs an
+  explicit `Glue` or universe `Comp` presentation, optionally wrapped in `Ann`;
+  a dynamically computed alias alone is rejected because reduction can erase
+  the elimination data on a face.
 - A closed Boolean type used only to demonstrate nontrivial computation.
 
 Pi/Sigma formation takes the maximum universe level. Dependent paths inherit
@@ -121,6 +124,11 @@ license are in `vendor/cubicaltt/`. Dragonfly's own code remains Apache-2.0.
 The mathematical references are the
 [CCHM paper](https://arxiv.org/abs/1611.02108) and
 [cubicaltt](https://github.com/mortberg/cubicaltt).
+
+The focused [correctness and soundness audit](docs/cubical-audit.md) records the
+bugs fixed, adversarial tests, universe checks, and remaining proof obligations.
+Run its tests with `cabal test cubical-audit-tests`; check package encapsulation
+with `cabal exec -- bash test-audit/check-exports.sh`.
 
 The following sections describe the original learning kernel.
 

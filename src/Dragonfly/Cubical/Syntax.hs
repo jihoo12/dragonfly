@@ -498,3 +498,65 @@ showVal1 v = case v of
 
 showVals :: [Val] -> Doc
 showVals = hsep . map showVal1
+
+-- An elimination must retain its presentation when a face makes the type
+-- reduce to the partial domain. Looking at the reduced Val loses this data.
+data GluePresentation
+  = EquivalenceGlue Natural Ter (System Ter)
+  | UniverseGlue Ter Ter (System Ter)
+
+gluePresentation :: Ter -> Maybe GluePresentation
+gluePresentation (Ann t _) = gluePresentation t
+gluePresentation (Glue l base sides) = Just (EquivalenceGlue l base sides)
+gluePresentation (Comp family base sides) = Just (UniverseGlue family base sides)
+gluePresentation _ = Nothing
+
+-- Conservative structural name collection for capture-avoiding AST builders.
+-- Pretty printers intentionally omit some annotations, so Show is not suitable.
+identifiers :: Ter -> [String]
+identifiers term = case term of
+  U _ -> []
+  Var x -> [x]
+  Pi a -> go a
+  Sigma a -> go a
+  Lam x a b -> x : both a b
+  App a b -> both a b
+  Ann a b -> both a b
+  Pair a b -> both a b
+  Fst a -> go a
+  Snd a -> go a
+  PathP a b c -> go a ++ both b c
+  PLam (Name i) a -> i : go a
+  AppFormula a phi -> go a ++ names phi
+  Comp a b sides -> both a b ++ systemNames sides
+  Fill a b sides -> both a b ++ systemNames sides
+  HComp a b sides -> both a b ++ systemNames sides
+  Glue _ a sides -> go a ++ systemNames sides
+  GlueElem ty a sides -> both ty a ++ systemNames sides
+  UnGlueElem a ty -> both a ty
+  Where a d -> go a ++ declarationNames d
+  Con c args -> c : concatMap go args
+  PCon c a args phis -> c : go a ++ concatMap go args ++ concatMap names phis
+  Split x _ a branches -> x : go a ++ concatMap branchNames branches
+  Sum _ x labels -> x : concatMap labelNames labels
+  HSum _ x labels -> x : concatMap labelNames labels
+  Undef _ a -> go a
+  Hole _ -> []
+  Id a b c -> go a ++ both b c
+  IdPair a sides -> go a ++ systemNames sides
+  IdJ a b c d e f -> concatMap go [a,b,c,d,e,f]
+  where
+    go = identifiers
+    both a b = go a ++ go b
+    names phi = [i | Name i <- support phi]
+    systemNames sides = concat
+      [ [i | Name i <- Map.keys face] ++ go value | (face,value) <- Map.toList sides ]
+    teleNames tele = concat [x : go a | (x,a) <- tele]
+    labelNames (OLabel x tele) = x : teleNames tele
+    labelNames (PLabel x tele is sides) = x : teleNames tele ++ [i | Name i <- is] ++ systemNames sides
+    branchNames (OBranch x args a) = x : args ++ go a
+    branchNames (PBranch x args is a) = x : args ++ [i | Name i <- is] ++ go a
+    declarationNames (MutualDecls _ ds) = concat [x : both a b | (x,(a,b)) <- ds]
+    declarationNames (OpaqueDecl x) = [x]
+    declarationNames (TransparentDecl x) = [x]
+    declarationNames TransparentAllDecl = []

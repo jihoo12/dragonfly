@@ -26,3 +26,9 @@ absorption, and substitutes fresh semantic names for dimension binders.
 Local warning exceptions in the three imported modules cover upstream naming,
 unused bindings, partial low-level functions, and orphan instances. The new
 checker, public API, and term builders compile under the project-wide -Wall.
+
+The correctness audit additionally preserves explicit Glue/universe-composition
+presentations in unglue evaluation under faces, rejects elimination annotations
+whose presentation is only a dynamic alias, and checks the constant-universe
+condition on universe-composition presentations. AST helper hygiene uses
+structural names rather than pretty-printing. See docs/cubical-audit.md.

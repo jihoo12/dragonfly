@@ -199,12 +199,12 @@ eval rho@(Env (_,_,_,Nameless os)) v = case v of
     fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
   Glue l a ts         -> glue l (eval rho a) (evalSystem rho ts)
   GlueElem _ a ts       -> glueElem (eval rho a) (evalSystem rho ts)
-  UnGlueElem a ty -> case ty of
-    Glue _ b ts -> unglueElem (eval rho a) (eval rho b) (evalSystem rho ts)
-    _ -> case eval rho ty of
-      VGlue _ b ts -> unglueElem (eval rho a) b ts
-      VCompU _ b ts -> unGlueU (eval rho a) b ts
-      _ -> error "unglue: expected a checked Glue or universe composition type"
+  UnGlueElem a ty -> case gluePresentation ty of
+    Just (EquivalenceGlue _ b ts) ->
+      unglueElem (eval rho a) (eval rho b) (evalSystem rho ts)
+    Just (UniverseGlue _ b ts) ->
+      unGlueU (eval rho a) (eval rho b) (evalSystem rho ts)
+    Nothing -> error "unglue: missing checked type presentation"
   Id a r s            -> VId (eval rho a) (eval rho r) (eval rho s)
   IdPair b ts         -> VIdPair (eval rho b) (evalSystem rho ts)
   IdJ a t c d x p     -> idJ (eval rho a) (eval rho t) (eval rho c)

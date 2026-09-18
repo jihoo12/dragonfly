@@ -193,28 +193,34 @@ infer term = case term of
     _ <- checkGlueSystem l vb ts
     pure (VU l)
   GlueElem ty base us -> do
-    _ <- inferType ty
+    l <- inferType ty
     target <- value ty
-    case ty of
-      Glue l b ts -> do
+    case gluePresentation ty of
+      Just (EquivalenceGlue _ b ts) -> do
         vb <- value b
-        vs <- checkGlueSystem l vb ts
+        vs <- asks (\ctx -> evalSystem (environment ctx) ts)
         checkGlueIntro vb vs base us equivDom (\e x -> app (equivFun e) x)
-      _ -> case target of
+      Just (UniverseGlue family b ts) -> do
+        checkUniverseFamily l family
+        vb <- value b
+        vs <- asks (\ctx -> evalSystem (environment ctx) ts)
+        checkGlueIntro vb vs base us (@@ One) eqFun
+      Nothing -> case target of
         VGlue _ b vs -> checkGlueIntro b vs base us equivDom (\e x -> app (equivFun e) x)
         VCompU _ b vs -> checkGlueIntro b vs base us (@@ One) eqFun
         _ -> failure "Glue introduction requires a Glue or universe composition type"
     pure target
   UnGlueElem t ty -> do
-    _ <- inferType ty
+    l <- inferType ty
+    -- Do not recover this data from the reduced type: that is not stable
+    -- under dimension substitution. Explicit presentations may be annotated.
+    base <- case gluePresentation ty of
+      Just (EquivalenceGlue _ b _) -> pure b
+      Just (UniverseGlue family b _) -> checkUniverseFamily l family >> pure b
+      Nothing -> failure "Unglue requires an explicit Glue or universe Comp presentation (possibly annotated)"
     target <- value ty
     check target t
-    case ty of
-      Glue _ b _ -> value b
-      _ -> case target of
-        VGlue _ b _ -> pure b
-        VCompU _ b _ -> pure b
-        _ -> failure "Unglue requires a Glue or universe composition type"
+    value base
   -- A finite, nullary sum suffices for the closed computational witness.
   -- No recursive definitions, positivity assumptions, or datatype eliminator.
   Sum _ _ labels -> do
@@ -226,6 +232,13 @@ infer term = case term of
     nullary (OLabel _ []) = True
     nullary _ = False
     distinct xs = length xs == length (nub xs)
+
+-- A Comp ending in a universe need not be a composition IN that universe.
+-- For its Glue presentation the entire family must be that fixed universe.
+checkUniverseFamily :: Natural -> Ter -> Typing ()
+checkUniverseFamily l family = do
+  vf <- value family
+  same vf (constPath (VU l))
 
 inferPiSigma :: Ter -> Typing Natural
 inferPiSigma (Lam x a b) = do
