@@ -2,6 +2,7 @@ module Main (main) where
 
 import Control.Monad (unless)
 import Dragonfly.Syntax
+import Dragonfly.Interval
 import Dragonfly.Eval
 import Dragonfly.Check
 import Dragonfly.Examples
@@ -89,4 +90,21 @@ main = do
     normalize [] 0 (App (Universe 0) (Universe 0)) == Left ApplyNonFunction
   assert "reification rejects escaping levels" $
     quote 0 (fresh 0) == Left (EscapingLevel 0 0)
+  let i = IVar 0
+      j = IVar 1
+      k = IVar 2
+  assert "De Morgan involution" $ equivalentInterval (INot (INot i)) i
+  assert "De Morgan negation of meet" $
+    equivalentInterval (INot (IMeet i j)) (IJoin (INot i) (INot j))
+  assert "interval distributivity" $
+    equivalentInterval (IMeet i (IJoin j k)) (IJoin (IMeet i j) (IMeet i k))
+  assert "interval absorption" $ equivalentInterval (IJoin i (IMeet i j)) i
+  assert "interval is not Boolean: excluded middle" $
+    not (equivalentInterval (IJoin i (INot i)) I1)
+  assert "interval is not Boolean: contradiction" $
+    not (equivalentInterval (IMeet i (INot i)) I0)
+  assert "dimension substitution normalizes endpoints" $
+    normalInterval (substituteInterval 0 I0 (IJoin i (INot i))) == I1
+  assert "dimension substitution removes its context entry" $
+    substituteInterval 0 I1 (IMeet i j) == IMeet I1 i
   putStrLn "All kernel tests passed."

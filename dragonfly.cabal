@@ -58,7 +58,7 @@ library
     import:           warnings
     hs-source-dirs:   src
     exposed-modules:  Dragonfly.Syntax Dragonfly.Eval Dragonfly.Check
-                      Dragonfly.Pretty Dragonfly.Examples
+                      Dragonfly.Pretty Dragonfly.Examples Dragonfly.Interval
     build-depends:    base ^>=4.20.2.0
     default-language: GHC2021
 
@@ -67,7 +67,7 @@ executable dragonfly
     main-is:          Main.hs
     hs-source-dirs:   src
     other-modules:    Dragonfly.Syntax Dragonfly.Eval Dragonfly.Check
-                      Dragonfly.Pretty Dragonfly.Examples
+                      Dragonfly.Pretty Dragonfly.Examples Dragonfly.Interval
     build-depends:    base ^>=4.20.2.0
     default-language: GHC2021
 
